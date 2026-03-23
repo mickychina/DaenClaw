@@ -1,8 +1,8 @@
-version: 0.2.6-beta.0
+version: 0.2.4-beta.2
 files:
-  - url: ClawX-0.2.6-beta.0-win-x64.exe
-    sha512: LiytswOd+TXpkIbvvKdiJe2IVMdKU8GjlCCeyduu7+qszRtdOxqgN+HF4sxmlpppoEvJzlV3GYjwJ1i6XEEFxQ==
-    size: 65
-path: ClawX-0.2.6-beta.0-win-x64.exe
-sha512: LiytswOd+TXpkIbvvKdiJe2IVMdKU8GjlCCeyduu7+qszRtdOxqgN+HF4sxmlpppoEvJzlV3GYjwJ1i6XEEFxQ==
-releaseDate: '2026-03-23T14:55:56.000Z'
+  - url: ClawX-0.2.4-beta.2-win-x64.exe
+    sha512: aWfb/trii6p7LDjMlFAyeeankiqTjypHoh/ZuxpvaavLuABlB2Wnp0sxnSZHf7KOjmAoqs/uaXh+cfXm9MQCxQ==
+    size: 418035951
+path: ClawX-0.2.4-beta.2-win-x64.exe
+sha512: aWfb/trii6p7LDjMlFAyeeankiqTjypHoh/ZuxpvaavLuABlB2Wnp0sxnSZHf7KOjmAoqs/uaXh+cfXm9MQCxQ==
+releaseDate: '2026-03-23T15:08:54.000Z'
