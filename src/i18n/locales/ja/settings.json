@@ -147,6 +147,11 @@
   "updates": {
     "title": "アップデート",
     "description": "ClawX を最新に保つ",
+    "serverUrl": "アップデートサーバー URL",
+    "serverUrlDesc": "アップデートサーバーのベース URL を上書きします。空欄で既定のサーバーを使用し、チャネルのパスは自動で追加されます。",
+    "serverUrlPlaceholder": "https://oss.intelli-spectrum.com",
+    "serverUrlSaved": "アップデートサーバー URL を保存しました",
+    "serverUrlSaveFailed": "アップデートサーバー URL の保存に失敗しました",
     "autoCheck": "自動更新チェック",
     "autoCheckDesc": "起動時に更新を確認",
     "autoDownload": "自動アップデート",

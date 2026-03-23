@@ -11,9 +11,10 @@ import { BrowserWindow, app, ipcMain } from 'electron';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { setQuitting } from './app-state';
+import { getSetting } from '../utils/store';
 
-/** Base CDN URL (without trailing channel path) */
-const OSS_BASE_URL = 'https://oss.intelli-spectrum.com';
+/** Default base CDN URL (without trailing channel path) */
+const DEFAULT_UPDATE_BASE_URL = 'https://oss.intelli-spectrum.com';
 
 export interface UpdateStatus {
   status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
@@ -46,6 +47,7 @@ export class AppUpdater extends EventEmitter {
   private status: UpdateStatus = { status: 'idle' };
   private autoInstallTimer: NodeJS.Timeout | null = null;
   private autoInstallCountdown = 0;
+  private updateBaseUrl = DEFAULT_UPDATE_BASE_URL;
 
   /** Delay (in seconds) before auto-installing a downloaded update. */
   private static readonly AUTO_INSTALL_DELAY_SECONDS = 5;
@@ -73,21 +75,40 @@ export class AppUpdater extends EventEmitter {
     // alpha -> /alpha/alpha-mac.yml, beta -> /beta/beta-mac.yml, etc.
     const version = app.getVersion();
     const channel = detectChannel(version);
-    const feedUrl = `${OSS_BASE_URL}/${channel}`;
-
-    logger.info(`[Updater] Version: ${version}, channel: ${channel}, feedUrl: ${feedUrl}`);
-
-    // Set channel so electron-updater requests the correct yml filename.
-    // e.g. channel "alpha" → requests alpha-mac.yml, channel "latest" → requests latest-mac.yml
     autoUpdater.channel = channel;
+    this.applyFeedUrl();
+
+    this.setupListeners();
+  }
+
+  private normalizeBaseUrl(value?: string): string {
+    const trimmed = value?.trim();
+    if (!trimmed) return DEFAULT_UPDATE_BASE_URL;
+    return trimmed.replace(/\/+$/g, '');
+  }
+
+  private applyFeedUrl(baseUrl?: string): void {
+    const resolvedBaseUrl = this.normalizeBaseUrl(baseUrl ?? this.updateBaseUrl);
+    this.updateBaseUrl = resolvedBaseUrl;
+    const channel = autoUpdater.channel || detectChannel(app.getVersion());
+    const feedUrl = `${resolvedBaseUrl}/${channel}`;
+
+    logger.info(`[Updater] Version: ${app.getVersion()}, channel: ${channel}, feedUrl: ${feedUrl}`);
 
     autoUpdater.setFeedURL({
       provider: 'generic',
       url: feedUrl,
       useMultipleRangeRequest: false,
     });
+  }
 
-    this.setupListeners();
+  setUpdateServerUrl(baseUrl: string): void {
+    this.applyFeedUrl(baseUrl);
+  }
+
+  async syncUpdateServerUrlFromSettings(): Promise<void> {
+    const baseUrl = await getSetting('updateServerUrl');
+    this.setUpdateServerUrl(baseUrl ?? '');
   }
 
   /**
@@ -267,6 +288,7 @@ export class AppUpdater extends EventEmitter {
    */
   setChannel(channel: 'stable' | 'beta' | 'dev'): void {
     autoUpdater.channel = channel;
+    this.applyFeedUrl();
   }
 
   /**

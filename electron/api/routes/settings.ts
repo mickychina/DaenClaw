@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { applyProxySettings } from '../../main/proxy';
+import { appUpdater } from '../../main/updater';
 import { syncLaunchAtStartupSettingFromStore } from '../../main/launch-at-startup';
 import { getAllSettings, getSetting, resetSettings, setSetting, type AppSettings } from '../../utils/store';
 import type { HostApiContext } from '../context';
@@ -28,6 +29,10 @@ function patchTouchesLaunchAtStartup(patch: Partial<AppSettings>): boolean {
   return Object.prototype.hasOwnProperty.call(patch, 'launchAtStartup');
 }
 
+function patchTouchesUpdateServerUrl(patch: Partial<AppSettings>): boolean {
+  return Object.prototype.hasOwnProperty.call(patch, 'updateServerUrl');
+}
+
 export async function handleSettingsRoutes(
   req: IncomingMessage,
   res: ServerResponse,
@@ -51,6 +56,12 @@ export async function handleSettingsRoutes(
       }
       if (patchTouchesLaunchAtStartup(patch)) {
         await syncLaunchAtStartupSettingFromStore();
+      }
+      if (patchTouchesUpdateServerUrl(patch)) {
+        const nextBaseUrl = typeof patch.updateServerUrl === 'string'
+          ? patch.updateServerUrl
+          : '';
+        appUpdater.setUpdateServerUrl(nextBaseUrl);
       }
       sendJson(res, 200, { success: true });
     } catch (error) {
@@ -87,6 +98,9 @@ export async function handleSettingsRoutes(
       if (key === 'launchAtStartup') {
         await syncLaunchAtStartupSettingFromStore();
       }
+      if (key === 'updateServerUrl') {
+        appUpdater.setUpdateServerUrl(typeof body.value === 'string' ? body.value : '');
+      }
       sendJson(res, 200, { success: true });
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });
@@ -99,6 +113,7 @@ export async function handleSettingsRoutes(
       await resetSettings();
       await handleProxySettingsChange(ctx);
       await syncLaunchAtStartupSettingFromStore();
+      appUpdater.setUpdateServerUrl('');
       sendJson(res, 200, { success: true, settings: await getAllSettings() });
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });

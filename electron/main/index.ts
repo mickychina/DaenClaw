@@ -272,6 +272,10 @@ async function initialize(): Promise<void> {
   // Register update handlers
   registerUpdateHandlers(appUpdater, window);
 
+  void appUpdater.syncUpdateServerUrlFromSettings().catch((error) => {
+    logger.warn('Failed to apply update server URL from settings:', error);
+  });
+
   // Note: Auto-check for updates is driven by the renderer (update store init)
   // so it respects the user's "Auto-check for updates" setting.
 

@@ -148,6 +148,11 @@
   "updates": {
     "title": "更新",
     "description": "保持 ClawX 最新",
+    "serverUrl": "升级服务器 URL",
+    "serverUrlDesc": "覆盖升级服务器的基础地址。留空则使用默认服务器；会自动追加通道路径。",
+    "serverUrlPlaceholder": "https://oss.intelli-spectrum.com",
+    "serverUrlSaved": "升级服务器 URL 已保存",
+    "serverUrlSaveFailed": "保存升级服务器 URL 失败",
     "autoCheck": "自动检查更新",
     "autoCheckDesc": "启动时检查更新",
     "autoDownload": "自动更新",

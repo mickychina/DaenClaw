@@ -31,6 +31,7 @@ interface SettingsState {
 
   // Update
   updateChannel: UpdateChannel;
+  updateServerUrl: string;
   autoCheckUpdate: boolean;
   autoDownloadUpdate: boolean;
 
@@ -57,6 +58,7 @@ interface SettingsState {
   setProxyAllServer: (value: string) => void;
   setProxyBypassRules: (value: string) => void;
   setUpdateChannel: (channel: UpdateChannel) => void;
+  setUpdateServerUrl: (value: string) => Promise<void>;
   setAutoCheckUpdate: (value: boolean) => void;
   setAutoDownloadUpdate: (value: boolean) => void;
   setSidebarCollapsed: (value: boolean) => void;
@@ -80,6 +82,7 @@ const defaultSettings = {
   proxyAllServer: '',
   proxyBypassRules: '<local>;localhost;127.0.0.1;::1',
   updateChannel: 'stable' as UpdateChannel,
+  updateServerUrl: '',
   autoCheckUpdate: true,
   autoDownloadUpdate: false,
   sidebarCollapsed: false,
@@ -89,7 +92,7 @@ const defaultSettings = {
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...defaultSettings,
 
       init: async () => {
@@ -158,6 +161,19 @@ export const useSettingsStore = create<SettingsState>()(
       setProxyAllServer: (proxyAllServer) => set({ proxyAllServer }),
       setProxyBypassRules: (proxyBypassRules) => set({ proxyBypassRules }),
       setUpdateChannel: (updateChannel) => set({ updateChannel }),
+      setUpdateServerUrl: async (updateServerUrl) => {
+        const previous = get().updateServerUrl;
+        set({ updateServerUrl });
+        try {
+          await hostApiFetch('/api/settings/updateServerUrl', {
+            method: 'PUT',
+            body: JSON.stringify({ value: updateServerUrl }),
+          });
+        } catch (error) {
+          set({ updateServerUrl: previous });
+          throw error;
+        }
+      },
       setAutoCheckUpdate: (autoCheckUpdate) => set({ autoCheckUpdate }),
       setAutoDownloadUpdate: (autoDownloadUpdate) => set({ autoDownloadUpdate }),
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),

@@ -196,6 +196,12 @@ Notes:
 - ClawX also syncs the proxy to OpenClaw's Telegram channel config when Telegram is enabled.
 - In **Settings → Advanced → Developer**, you can run **OpenClaw Doctor** to execute `openclaw doctor --json` and inspect the diagnostic output without leaving the app.
 
+### Update Server Override
+
+To use a self-hosted update server, open **Settings → Updates** and set **Update server URL**
+to the base URL (for example `https://updates.example.com`). ClawX will append the
+channel path automatically (`/latest`, `/beta`, `/dev`).
+
 ---
 
 ## Architecture

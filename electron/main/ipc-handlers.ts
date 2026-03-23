@@ -2150,6 +2150,9 @@ function registerSettingsHandlers(gatewayManager: GatewayManager): void {
     if (key === 'launchAtStartup') {
       await syncLaunchAtStartupSettingFromStore();
     }
+    if (key === 'updateServerUrl') {
+      appUpdater.setUpdateServerUrl(typeof value === 'string' ? value : '');
+    }
 
     return { success: true };
   });
@@ -2173,6 +2176,10 @@ function registerSettingsHandlers(gatewayManager: GatewayManager): void {
     if (entries.some(([key]) => key === 'launchAtStartup')) {
       await syncLaunchAtStartupSettingFromStore();
     }
+    if (Object.prototype.hasOwnProperty.call(patch, 'updateServerUrl')) {
+      const nextBaseUrl = typeof patch.updateServerUrl === 'string' ? patch.updateServerUrl : '';
+      appUpdater.setUpdateServerUrl(nextBaseUrl);
+    }
 
     return { success: true };
   });
@@ -2182,6 +2189,7 @@ function registerSettingsHandlers(gatewayManager: GatewayManager): void {
     const settings = await getAllSettings();
     await handleProxySettingsChange();
     await syncLaunchAtStartupSettingFromStore();
+    appUpdater.setUpdateServerUrl('');
     return { success: true, settings };
   });
 }

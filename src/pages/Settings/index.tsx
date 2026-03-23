@@ -73,6 +73,8 @@ export function Settings() {
     setAutoCheckUpdate,
     autoDownloadUpdate,
     setAutoDownloadUpdate,
+    updateServerUrl,
+    setUpdateServerUrl,
     devModeUnlocked,
     setDevModeUnlocked,
     telemetryEnabled,
@@ -92,6 +94,8 @@ export function Settings() {
   const [proxyBypassRulesDraft, setProxyBypassRulesDraft] = useState('');
   const [proxyEnabledDraft, setProxyEnabledDraft] = useState(false);
   const [savingProxy, setSavingProxy] = useState(false);
+  const [updateServerUrlDraft, setUpdateServerUrlDraft] = useState('');
+  const [savingUpdateServerUrl, setSavingUpdateServerUrl] = useState(false);
   const [wsDiagnosticEnabled, setWsDiagnosticEnabled] = useState(false);
   const [showTelemetryViewer, setShowTelemetryViewer] = useState(false);
   const [telemetryEntries, setTelemetryEntries] = useState<UiTelemetryEntry[]>([]);
@@ -113,6 +117,8 @@ export function Settings() {
     timedOut?: boolean;
     error?: string;
   } | null>(null);
+
+  const updateServerUrlDirty = updateServerUrlDraft.trim() !== updateServerUrl;
 
   const handleShowLogs = async () => {
     try {
@@ -323,6 +329,10 @@ export function Settings() {
     setProxyBypassRulesDraft(proxyBypassRules);
   }, [proxyBypassRules]);
 
+  useEffect(() => {
+    setUpdateServerUrlDraft(updateServerUrl);
+  }, [updateServerUrl]);
+
   const handleSaveProxySettings = async () => {
     setSavingProxy(true);
     try {
@@ -353,6 +363,19 @@ export function Settings() {
       toast.error(`${t('gateway.proxySaveFailed')}: ${toUserMessage(error)}`);
     } finally {
       setSavingProxy(false);
+    }
+  };
+
+  const handleSaveUpdateServerUrl = async () => {
+    setSavingUpdateServerUrl(true);
+    try {
+      const normalized = updateServerUrlDraft.trim();
+      await setUpdateServerUrl(normalized);
+      toast.success(t('updates.serverUrlSaved'));
+    } catch (error) {
+      toast.error(`${t('updates.serverUrlSaveFailed')}: ${toUserMessage(error)}`);
+    } finally {
+      setSavingUpdateServerUrl(false);
     }
   };
 
@@ -1013,6 +1036,32 @@ export function Settings() {
             </h2>
             <div className="space-y-6">
               <UpdateSettings />
+
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-[15px] font-medium text-foreground">{t('updates.serverUrl')}</Label>
+                  <p className="text-[13px] text-muted-foreground mt-1">
+                    {t('updates.serverUrlDesc')}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Input
+                    value={updateServerUrlDraft}
+                    onChange={(event) => setUpdateServerUrlDraft(event.target.value)}
+                    placeholder={t('updates.serverUrlPlaceholder')}
+                    className="h-10 rounded-xl bg-black/5 dark:bg-white/5 border-transparent font-mono text-[13px] flex-1 min-w-[240px]"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveUpdateServerUrl}
+                    disabled={savingUpdateServerUrl || !updateServerUrlDirty}
+                    className="rounded-xl h-10 px-5 bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2${savingUpdateServerUrl ? ' animate-spin' : ''}`} />
+                    {savingUpdateServerUrl ? t('common:status.saving') : t('common:actions.save')}
+                  </Button>
+                </div>
+              </div>
 
               <div className="flex items-center justify-between">
                 <div>

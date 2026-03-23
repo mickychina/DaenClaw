@@ -44,6 +44,7 @@ export interface AppSettings {
 
   // Update
   updateChannel: 'stable' | 'beta' | 'dev';
+  updateServerUrl: string;
   autoCheckUpdate: boolean;
   autoDownloadUpdate: boolean;
   skippedVersions: string[];
@@ -95,6 +96,7 @@ function createDefaultSettings(): AppSettings {
 
     // Update
     updateChannel: 'stable',
+    updateServerUrl: '',
     autoCheckUpdate: true,
     autoDownloadUpdate: false,
     skippedVersions: [],

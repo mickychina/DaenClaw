@@ -148,6 +148,11 @@
   "updates": {
     "title": "Updates",
     "description": "Keep ClawX up to date",
+    "serverUrl": "Update server URL",
+    "serverUrlDesc": "Override the update server base URL. Leave empty to use the default server; the channel path is appended automatically.",
+    "serverUrlPlaceholder": "https://oss.intelli-spectrum.com",
+    "serverUrlSaved": "Update server URL saved",
+    "serverUrlSaveFailed": "Failed to save update server URL",
     "autoCheck": "Auto-check for updates",
     "autoCheckDesc": "Check for updates on startup",
     "autoDownload": "Auto-update",
