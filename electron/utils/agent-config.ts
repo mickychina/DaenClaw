@@ -42,7 +42,10 @@ interface AgentListEntry extends Record<string, unknown> {
   workspace?: string;
   agentDir?: string;
   model?: string | AgentModelConfig;
-  subAgents?: string[];
+  subagents?: {
+    allowAgents?: string[];
+    [key: string]: unknown;
+  };
 }
 
 interface AgentsConfig extends Record<string, unknown> {
@@ -206,20 +209,28 @@ function normalizeAgentsConfig(config: AgentConfigDocument): {
 }
 
 function normalizeSubAgentIds(
-  subAgents: unknown,
+  allowAgents: unknown,
   entries: AgentListEntry[],
   agentId: string,
 ): string[] {
-  if (!Array.isArray(subAgents)) return [];
+  if (!Array.isArray(allowAgents)) return [];
   const idMap = new Map(entries.map((entry) => [entry.id.trim().toLowerCase(), entry.id]));
   const normalizedSelf = agentId.trim().toLowerCase();
   const seen = new Set<string>();
   const result: string[] = [];
 
-  for (const raw of subAgents) {
+  for (const raw of allowAgents) {
     if (typeof raw !== 'string') continue;
     const normalized = raw.trim().toLowerCase();
-    if (!normalized || normalized === normalizedSelf) continue;
+    if (!normalized) continue;
+    if (normalized === '*') {
+      if (!seen.has('*')) {
+        seen.add('*');
+        result.push('*');
+      }
+      continue;
+    }
+    if (normalized === normalizedSelf) continue;
     const resolved = idMap.get(normalized);
     if (!resolved || seen.has(resolved)) continue;
     seen.add(resolved);
@@ -227,6 +238,16 @@ function normalizeSubAgentIds(
   }
 
   return result;
+}
+
+function normalizeSubagentsConfig(entry: AgentListEntry): AgentListEntry['subagents'] | undefined {
+  if (!entry.subagents || typeof entry.subagents !== 'object' || Array.isArray(entry.subagents)) return undefined;
+  return entry.subagents;
+}
+
+function getLegacySubAgents(entry: AgentListEntry): unknown {
+  const legacy = (entry as { subAgents?: unknown }).subAgents;
+  return legacy;
 }
 
 function isChannelBinding(binding: unknown): binding is BindingConfig {
@@ -510,7 +531,11 @@ async function buildSnapshotFromConfig(config: AgentConfigDocument): Promise<Age
     const inheritedModel = !formatModelLabel(entry.model) && Boolean(defaultModelLabel);
     const entryIdNorm = normalizeAgentIdForBinding(entry.id);
     const ownedChannels = agentChannelSets.get(entryIdNorm) ?? new Set<string>();
-    const subAgents = normalizeSubAgentIds(entry.subAgents, entries, entry.id);
+    const subAgents = normalizeSubAgentIds(
+      entry.subagents?.allowAgents ?? getLegacySubAgents(entry),
+      entries,
+      entry.id,
+    );
     return {
       id: entry.id,
       name: entry.name || (entry.id === MAIN_AGENT_ID ? MAIN_AGENT_NAME : entry.id),
@@ -617,10 +642,21 @@ export async function updateAgentConfig(
         throw new Error('subAgents must be an array');
       }
       const normalizedSubAgents = normalizeSubAgentIds(updates.subAgents, entries, agentId);
+      const existingSubagents = normalizeSubagentsConfig(updatedEntry) ?? {};
+      const nextSubagents = {
+        ...existingSubagents,
+        allowAgents: normalizedSubAgents.length > 0 ? normalizedSubAgents : undefined,
+      };
+      if (!nextSubagents.allowAgents || nextSubagents.allowAgents.length === 0) {
+        delete nextSubagents.allowAgents;
+      }
       updatedEntry = {
         ...updatedEntry,
-        subAgents: normalizedSubAgents.length > 0 ? normalizedSubAgents : undefined,
+        subagents: Object.keys(nextSubagents).length > 0 ? nextSubagents : undefined,
       };
+      if ('subAgents' in updatedEntry) {
+        delete (updatedEntry as { subAgents?: unknown }).subAgents;
+      }
       didChange = true;
     }
 
