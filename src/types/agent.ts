@@ -8,6 +8,7 @@ export interface AgentSummary {
   agentDir: string;
   mainSessionKey: string;
   channelTypes: string[];
+  subAgents: string[];
 }
 
 export interface AgentsSnapshot {

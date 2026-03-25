@@ -7,7 +7,7 @@ import {
   listAgentsSnapshot,
   removeAgentWorkspaceDirectory,
   resolveAccountIdForAgent,
-  updateAgentName,
+  updateAgentConfig,
 } from '../../utils/agent-config';
 import { deleteChannelAccountConfig } from '../../utils/channel-config';
 import { syncAllProviderAuthToRuntime } from '../../services/providers/provider-runtime-sync';
@@ -136,9 +136,12 @@ export async function handleAgentRoutes(
 
     if (parts.length === 1) {
       try {
-        const body = await parseJsonBody<{ name: string }>(req);
+        const body = await parseJsonBody<{ name?: string; subAgents?: string[] }>(req);
         const agentId = decodeURIComponent(parts[0]);
-        const snapshot = await updateAgentName(agentId, body.name);
+        const snapshot = await updateAgentConfig(agentId, {
+          name: body.name,
+          subAgents: body.subAgents,
+        });
         scheduleGatewayReload(ctx, 'update-agent');
         sendJson(res, 200, { success: true, ...snapshot });
       } catch (error) {

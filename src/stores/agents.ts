@@ -13,7 +13,7 @@ interface AgentsState {
   error: string | null;
   fetchAgents: () => Promise<void>;
   createAgent: (name: string) => Promise<void>;
-  updateAgent: (agentId: string, name: string) => Promise<void>;
+  updateAgent: (agentId: string, updates: { name?: string; subAgents?: string[] }) => Promise<void>;
   deleteAgent: (agentId: string) => Promise<void>;
   assignChannel: (agentId: string, channelType: ChannelType) => Promise<void>;
   removeChannel: (agentId: string, channelType: ChannelType) => Promise<void>;
@@ -66,14 +66,14 @@ export const useAgentsStore = create<AgentsState>((set) => ({
     }
   },
 
-  updateAgent: async (agentId: string, name: string) => {
+  updateAgent: async (agentId: string, updates: { name?: string; subAgents?: string[] }) => {
     set({ error: null });
     try {
       const snapshot = await hostApiFetch<AgentsSnapshot & { success?: boolean }>(
         `/api/agents/${encodeURIComponent(agentId)}`,
         {
           method: 'PUT',
-          body: JSON.stringify({ name }),
+          body: JSON.stringify(updates),
         }
       );
       set(applySnapshot(snapshot));

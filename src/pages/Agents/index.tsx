@@ -423,23 +423,57 @@ function AgentSettingsModal({
 }) {
   const { t } = useTranslation('agents');
   const { updateAgent } = useAgentsStore();
+  const allAgents = useAgentsStore((state) => state.agents);
   const [name, setName] = useState(agent.name);
   const [savingName, setSavingName] = useState(false);
+  const [subAgentIds, setSubAgentIds] = useState<string[]>(agent.subAgents ?? []);
+  const [savingSubAgents, setSavingSubAgents] = useState(false);
 
   useEffect(() => {
     setName(agent.name);
-  }, [agent.name]);
+    setSubAgentIds(agent.subAgents ?? []);
+  }, [agent.id, agent.name, agent.subAgents]);
 
   const handleSaveName = async () => {
     if (!name.trim() || name.trim() === agent.name) return;
     setSavingName(true);
     try {
-      await updateAgent(agent.id, name.trim());
+      await updateAgent(agent.id, { name: name.trim() });
       toast.success(t('toast.agentUpdated'));
     } catch (error) {
       toast.error(t('toast.agentUpdateFailed', { error: String(error) }));
     } finally {
       setSavingName(false);
+    }
+  };
+
+  const availableSubAgents = useMemo(
+    () => allAgents.filter((candidate) => candidate.id !== agent.id),
+    [allAgents, agent.id],
+  );
+
+  const hasSubAgentChanges = useMemo(() => {
+    const current = [...subAgentIds].sort();
+    const initial = [...(agent.subAgents ?? [])].sort();
+    if (current.length !== initial.length) return true;
+    return current.some((value, index) => value !== initial[index]);
+  }, [agent.subAgents, subAgentIds]);
+
+  const toggleSubAgent = (id: string) => {
+    setSubAgentIds((prev) => (
+      prev.includes(id) ? prev.filter((entry) => entry !== id) : [...prev, id]
+    ));
+  };
+
+  const handleSaveSubAgents = async () => {
+    setSavingSubAgents(true);
+    try {
+      await updateAgent(agent.id, { subAgents: subAgentIds });
+      toast.success(t('toast.agentUpdated'));
+    } catch (error) {
+      toast.error(t('toast.agentUpdateFailed', { error: String(error) }));
+    } finally {
+      setSavingSubAgents(false);
     }
   };
 
@@ -524,6 +558,51 @@ function AgentSettingsModal({
                 </p>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-serif text-foreground font-normal tracking-tight">
+                  {t('settingsDialog.subAgentsTitle')}
+                </h3>
+                <p className="text-[14px] text-foreground/70 mt-1">{t('settingsDialog.subAgentsDescription')}</p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => void handleSaveSubAgents()}
+                disabled={savingSubAgents || !hasSubAgentChanges}
+                className="h-9 text-[13px] font-medium rounded-full px-4 border-black/10 dark:border-white/10 bg-[#eeece3] dark:bg-muted hover:bg-black/5 dark:hover:bg-white/5 shadow-none text-foreground/80 hover:text-foreground"
+              >
+                {savingSubAgents ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  t('common:actions.save')
+                )}
+              </Button>
+            </div>
+
+            {availableSubAgents.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-4 text-[13.5px] text-muted-foreground">
+                {t('settingsDialog.subAgentsEmpty')}
+              </div>
+            ) : (
+              <div className="space-y-2 rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-black/5 dark:bg-white/5">
+                {availableSubAgents.map((candidate) => (
+                  <label key={candidate.id} className="flex items-center gap-3 text-[13px] cursor-pointer group/label">
+                    <input
+                      type="checkbox"
+                      checked={subAgentIds.includes(candidate.id)}
+                      onChange={() => toggleSubAgent(candidate.id)}
+                      className="rounded border-black/20 dark:border-white/20 text-blue-500 focus:ring-blue-500/50"
+                    />
+                    <span className="font-medium group-hover/label:text-blue-500 transition-colors">{candidate.name}</span>
+                    <span className="text-[12px] text-muted-foreground">@{candidate.id}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-[12px] text-muted-foreground">{t('settingsDialog.subAgentsHelp')}</p>
           </div>
 
           <div className="space-y-4">

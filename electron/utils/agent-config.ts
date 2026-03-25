@@ -42,6 +42,7 @@ interface AgentListEntry extends Record<string, unknown> {
   workspace?: string;
   agentDir?: string;
   model?: string | AgentModelConfig;
+  subAgents?: string[];
 }
 
 interface AgentsConfig extends Record<string, unknown> {
@@ -85,6 +86,7 @@ export interface AgentSummary {
   agentDir: string;
   mainSessionKey: string;
   channelTypes: string[];
+  subAgents: string[];
 }
 
 export interface AgentsSnapshot {
@@ -201,6 +203,30 @@ function normalizeAgentsConfig(config: AgentConfigDocument): {
     defaultAgentId: defaultEntry.id,
     syntheticMain: false,
   };
+}
+
+function normalizeSubAgentIds(
+  subAgents: unknown,
+  entries: AgentListEntry[],
+  agentId: string,
+): string[] {
+  if (!Array.isArray(subAgents)) return [];
+  const idMap = new Map(entries.map((entry) => [entry.id.trim().toLowerCase(), entry.id]));
+  const normalizedSelf = agentId.trim().toLowerCase();
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const raw of subAgents) {
+    if (typeof raw !== 'string') continue;
+    const normalized = raw.trim().toLowerCase();
+    if (!normalized || normalized === normalizedSelf) continue;
+    const resolved = idMap.get(normalized);
+    if (!resolved || seen.has(resolved)) continue;
+    seen.add(resolved);
+    result.push(resolved);
+  }
+
+  return result;
 }
 
 function isChannelBinding(binding: unknown): binding is BindingConfig {
@@ -484,6 +510,7 @@ async function buildSnapshotFromConfig(config: AgentConfigDocument): Promise<Age
     const inheritedModel = !formatModelLabel(entry.model) && Boolean(defaultModelLabel);
     const entryIdNorm = normalizeAgentIdForBinding(entry.id);
     const ownedChannels = agentChannelSets.get(entryIdNorm) ?? new Set<string>();
+    const subAgents = normalizeSubAgentIds(entry.subAgents, entries, entry.id);
     return {
       id: entry.id,
       name: entry.name || (entry.id === MAIN_AGENT_ID ? MAIN_AGENT_NAME : entry.id),
@@ -494,6 +521,7 @@ async function buildSnapshotFromConfig(config: AgentConfigDocument): Promise<Age
       agentDir: entry.agentDir || getDefaultAgentDirPath(entry.id),
       mainSessionKey: buildAgentMainSessionKey(config, entry.id),
       channelTypes: configuredChannels.filter((ct) => ownedChannels.has(ct)),
+      subAgents,
     };
   });
 
@@ -558,20 +586,48 @@ export async function createAgent(name: string): Promise<AgentsSnapshot> {
   });
 }
 
-export async function updateAgentName(agentId: string, name: string): Promise<AgentsSnapshot> {
+export async function updateAgentConfig(
+  agentId: string,
+  updates: { name?: string; subAgents?: string[] },
+): Promise<AgentsSnapshot> {
   return withConfigLock(async () => {
     const config = await readOpenClawConfig() as AgentConfigDocument;
     const { agentsConfig, entries } = normalizeAgentsConfig(config);
-    const normalizedName = normalizeAgentName(name);
     const index = entries.findIndex((entry) => entry.id === agentId);
     if (index === -1) {
       throw new Error(`Agent "${agentId}" not found`);
     }
 
-    entries[index] = {
-      ...entries[index],
-      name: normalizedName,
-    };
+    let updatedEntry = { ...entries[index] };
+    let didChange = false;
+
+    if (typeof updates.name === 'string') {
+      const normalizedName = normalizeAgentName(updates.name);
+      if (normalizedName !== entries[index].name) {
+        updatedEntry = {
+          ...updatedEntry,
+          name: normalizedName,
+        };
+        didChange = true;
+      }
+    }
+
+    if (updates.subAgents !== undefined) {
+      if (!Array.isArray(updates.subAgents)) {
+        throw new Error('subAgents must be an array');
+      }
+      const normalizedSubAgents = normalizeSubAgentIds(updates.subAgents, entries, agentId);
+      updatedEntry = {
+        ...updatedEntry,
+        subAgents: normalizedSubAgents.length > 0 ? normalizedSubAgents : undefined,
+      };
+      didChange = true;
+    }
+
+    if (!didChange) {
+      return buildSnapshotFromConfig(config);
+    }
+    entries[index] = updatedEntry;
 
     config.agents = {
       ...agentsConfig,
@@ -579,9 +635,13 @@ export async function updateAgentName(agentId: string, name: string): Promise<Ag
     };
 
     await writeOpenClawConfig(config);
-    logger.info('Updated agent name', { agentId, name: normalizedName });
+    logger.info('Updated agent config', { agentId, updates: { ...updates, subAgents: updatedEntry.subAgents ?? [] } });
     return buildSnapshotFromConfig(config);
   });
+}
+
+export async function updateAgentName(agentId: string, name: string): Promise<AgentsSnapshot> {
+  return updateAgentConfig(agentId, { name });
 }
 
 export async function deleteAgentConfig(agentId: string): Promise<{ snapshot: AgentsSnapshot; removedEntry: AgentListEntry }> {
