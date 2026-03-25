@@ -1,8 +1,8 @@
-version: 0.2.7-beta.3
+version: 0.2.7-beta.4
 files:
-  - url: https://github.com/mickychina/DaenClaw/releases/download/v0.2.7-beta.3/ClawX-0.2.7-beta.3-win-x64.exe
-    sha512: vvYVI+FCuaHDtPl7Te9Tv74i7pmqXk2DFE9XQGr/P5kjgFvor0U/tXqFFMzOrCv3zbUniMfNWWpaKT2LkSR0ig==
-    size: 418031915
-path: https://github.com/mickychina/DaenClaw/releases/download/v0.2.7-beta.3/ClawX-0.2.7-beta.3-win-x64.exe
-sha512: vvYVI+FCuaHDtPl7Te9Tv74i7pmqXk2DFE9XQGr/P5kjgFvor0U/tXqFFMzOrCv3zbUniMfNWWpaKT2LkSR0ig==
-releaseDate: '2026-03-25T05:59:54.000Z'
+  - url: https://github.com/mickychina/DaenClaw/releases/download/v0.2.7-beta.4/ClawX-0.2.7-beta.4-win-x64.exe
+    sha512: uMEM0D1uPu1dVCkFMDSFEf+D+6oC/kP9NCefzNLbZmgWuyudDuRTqgov974vJ2D380NKLg3M1XYOXQYMhyTdRg==
+    size: 418031897
+path: https://github.com/mickychina/DaenClaw/releases/download/v0.2.7-beta.4/ClawX-0.2.7-beta.4-win-x64.exe
+sha512: uMEM0D1uPu1dVCkFMDSFEf+D+6oC/kP9NCefzNLbZmgWuyudDuRTqgov974vJ2D380NKLg3M1XYOXQYMhyTdRg==
+releaseDate: '2026-03-25T06:38:50.000Z'

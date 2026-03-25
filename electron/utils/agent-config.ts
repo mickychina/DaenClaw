@@ -250,6 +250,39 @@ function getLegacySubAgents(entry: AgentListEntry): unknown {
   return legacy;
 }
 
+function migrateLegacySubAgentsEntry(
+  entry: AgentListEntry,
+  entries: AgentListEntry[],
+): { entry: AgentListEntry; didChange: boolean } {
+  if (!('subAgents' in entry)) {
+    return { entry, didChange: false };
+  }
+
+  const normalizedLegacy = normalizeSubAgentIds(getLegacySubAgents(entry), entries, entry.id);
+  const existingSubagents = normalizeSubagentsConfig(entry) ?? {};
+  const hasExistingAllowAgents = Array.isArray(existingSubagents.allowAgents) && existingSubagents.allowAgents.length > 0;
+  const nextSubagents: AgentListEntry['subagents'] = {
+    ...existingSubagents,
+  };
+
+  if (!hasExistingAllowAgents) {
+    if (normalizedLegacy.length > 0) {
+      nextSubagents.allowAgents = normalizedLegacy;
+    } else {
+      delete nextSubagents.allowAgents;
+    }
+  }
+
+  const nextEntry: AgentListEntry = {
+    ...entry,
+    subagents: nextSubagents && Object.keys(nextSubagents).length > 0 ? nextSubagents : undefined,
+  };
+
+  delete (nextEntry as { subAgents?: unknown }).subAgents;
+
+  return { entry: nextEntry, didChange: true };
+}
+
 function isChannelBinding(binding: unknown): binding is BindingConfig {
   if (!binding || typeof binding !== 'object') return false;
   const candidate = binding as BindingConfig;
@@ -560,8 +593,29 @@ async function buildSnapshotFromConfig(config: AgentConfigDocument): Promise<Age
 }
 
 export async function listAgentsSnapshot(): Promise<AgentsSnapshot> {
-  const config = await readOpenClawConfig() as AgentConfigDocument;
-  return buildSnapshotFromConfig(config);
+  return withConfigLock(async () => {
+    const config = await readOpenClawConfig() as AgentConfigDocument;
+    const { agentsConfig, entries } = normalizeAgentsConfig(config);
+    let didChange = false;
+    const nextEntries = entries.map((entry) => {
+      const migrated = migrateLegacySubAgentsEntry(entry, entries);
+      if (migrated.didChange) {
+        didChange = true;
+      }
+      return migrated.entry;
+    });
+
+    if (didChange) {
+      config.agents = {
+        ...agentsConfig,
+        list: nextEntries,
+      };
+      await writeOpenClawConfig(config);
+      logger.info('Migrated legacy subAgents config entries');
+    }
+
+    return buildSnapshotFromConfig(config);
+  });
 }
 
 export async function listConfiguredAgentIds(): Promise<string[]> {
@@ -657,6 +711,12 @@ export async function updateAgentConfig(
       if ('subAgents' in updatedEntry) {
         delete (updatedEntry as { subAgents?: unknown }).subAgents;
       }
+      didChange = true;
+    }
+
+    const migrated = migrateLegacySubAgentsEntry(updatedEntry, entries);
+    if (migrated.didChange) {
+      updatedEntry = migrated.entry;
       didChange = true;
     }
 
